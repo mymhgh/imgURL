@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ইমেজ টু URL জেনারেটর</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Verdana', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2575fc;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #6a11cb;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .upload-area:hover {
+            background-color: #f0f5ff;
+            border-color: #2575fc;
+        }
+        
+        .upload-area i {
+            font-size: 50px;
+            color: #6a11cb;
+            margin-bottom: 15px;
+        }
+        
+        .upload-area p {
+            color: #666;
+            margin: 10px 0;
+        }
+        
+        #image-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .preview-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        #image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .url-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        #generated-url {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+            font-size: 16px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #2575fc;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #6a11cb;
+        }
+        
+        #copy-btn {
+            background-color: #4caf50;
+        }
+        
+        #copy-btn:hover {
+            background-color: #388e3c;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: #4caf50;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        footer {
+            margin-top: 30px;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                width: 95%;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ইমেজ টু URL জেনারেটর</h1>
+        
+        <div class="upload-area" id="upload-area">
+            <i>📁</i>
+            <p>ইমেজ আপলোড করতে এখানে ক্লিক করুন বা ফাইল ড্রপ করুন</p>
+            <p class="small">(JPEG, PNG, GIF - সর্বোচ্চ সাইজ 5MB)</p>
+            <input type="file" id="image-input" accept="image/*">
+        </div>
+        
+        <div class="preview-container" id="preview-container">
+            <h2>ইমেজ প্রিভিউ</h2>
+            <img id="image-preview" alt="আপলোড করা ইমেজের প্রিভিউ">
+        </div>
+        
+        <div class="url-container" id="url-container">
+            <h2>জেনারেটেড URL</h2>
+            <input type="text" id="generated-url" readonly>
+            <div class="buttons">
+                <button id="copy-btn">URL কপি করুন</button>
+                <button id="new-btn">নতুন ইমেজ</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">URL কপি করা হয়েছে!</div>
+    
+    <footer>
+        <p>© ২০২৩ ইমেজ টু URL জেনারেটর | সকল অধিকার সংরক্ষিত</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('image-input');
+            const uploadArea = document.getElementById('upload-area');
+            const previewContainer = document.getElementById('preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const urlContainer = document.getElementById('url-container');
+            const generatedUrl = document.getElementById('generated-url');
+            const copyBtn = document.getElementById('copy-btn');
+            const newBtn = document.getElementById('new-btn');
+            const notification = document.getElementById('notification');
+            
+            // Check if there's an image in localStorage on page load
+            const savedImageData = localStorage.getItem('uploadedImage');
+            if (savedImageData) {
+                const imageData = JSON.parse(savedImageData);
+                showPreview(imageData.dataUrl);
+                generateUrl();
+            }
+            
+            // Handle file selection
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('ফাইল সাইজ খুব বড়! সর্বোচ্চ 5MB সাইজের ইমেজ আপলোড করুন।');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const dataUrl = event.target.result;
+                        
+                        // Save to localStorage
+                        const imageData = {
+                            dataUrl: dataUrl,
+                            timestamp: new Date().getTime()
+                        };
+                        localStorage.setItem('uploadedImage', JSON.stringify(imageData));
+                        
+                        showPreview(dataUrl);
+                        generateUrl();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '#f0f5ff';
+                uploadArea.style.borderColor = '#2575fc';
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '';
+                uploadArea.style.borderColor = '#6a11cb';
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '';
+                uploadArea.style.borderColor = '#6a11cb';
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    imageInput.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    imageInput.dispatchEvent(event);
+                } else {
+                    alert('দয়া করে একটি বৈধ ইমেজ ফাইল ড্রপ করুন।');
+                }
+            });
+            
+            // Copy URL to clipboard
+            copyBtn.addEventListener('click', function() {
+                generatedUrl.select();
+                document.execCommand('copy');
+                
+                // Show notification
+                notification.classList.add('show');
+                setTimeout(function() {
+                    notification.classList.remove('show');
+                }, 2000);
+            });
+            
+            // Start new upload
+            newBtn.addEventListener('click', function() {
+                localStorage.removeItem('uploadedImage');
+                previewContainer.style.display = 'none';
+                urlContainer.style.display = 'none';
+                uploadArea.style.display = 'block';
+                imageInput.value = '';
+            });
+            
+            function showPreview(dataUrl) {
+                imagePreview.src = dataUrl;
+                previewContainer.style.display = 'block';
+                uploadArea.style.display = 'none';
+            }
+            
+            function generateUrl() {
+                // In a real application, this would be a server-generated URL
+                // For this demo, we'll create a data URL that works only in this browser
+                const baseUrl = window.location.href.split('?')[0];
+                generatedUrl.value = baseUrl;
+                urlContainer.style.display = 'block';
+                
+                // Scroll to URL container
+                urlContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
