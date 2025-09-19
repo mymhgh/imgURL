@@ -174,61 +174,31 @@
             transform: translateX(0);
         }
         
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         footer {
             margin-top: 30px;
             color: white;
             text-align: center;
             font-size: 14px;
-        }
-        
-        .recent-images {
-            margin-top: 30px;
-            width: 90%;
-            max-width: 600px;
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        
-        .recent-images h2 {
-            color: #2575fc;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        
-        .image-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-        }
-        
-        .image-item {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        
-        .image-item:hover {
-            transform: scale(1.05);
-        }
-        
-        .image-item img {
-            width: 100%;
-            height: 100px;
-            object-fit: cover;
-        }
-        
-        .image-item p {
-            padding: 8px;
-            font-size: 12px;
-            text-align: center;
-            background: #f9f9f9;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
         
         @media (max-width: 600px) {
@@ -248,10 +218,6 @@
             button {
                 width: 100%;
             }
-            
-            .image-list {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
         }
     </style>
 </head>
@@ -264,7 +230,7 @@
             <ol>
                 <li>নিচে ইমেজ আপলোড করতে ক্লিক করুন</li>
                 <li>আপনার ইমেজ সিলেক্ট করুন</li>
-                <li>অটোমেটিকভাবে একটি ইউনিক URL জেনারেট হবে</li>
+                <li>ইমেজটি সার্ভারে আপলোড হবে এবং একটি ইউনিক URL জেনারেট হবে</li>
                 <li>URL কপি করে অন্যকে শেয়ার করুন</li>
                 <li>শেয়ার করা URL এ ক্লিক করলে ইমেজটি দেখা যাবে</li>
             </ol>
@@ -275,6 +241,11 @@
             <p>ইমেজ আপলোড করতে এখানে ক্লিক করুন বা ফাইল ড্রপ করুন</p>
             <p class="small">(JPEG, PNG, GIF - সর্বোচ্চ সাইজ 5MB)</p>
             <input type="file" id="image-input" accept="image/*">
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>ইমেজ আপলোড হচ্ছে...</p>
         </div>
         
         <div class="preview-container" id="preview-container">
@@ -288,15 +259,7 @@
             <div class="buttons">
                 <button id="copy-btn">URL কপি করুন</button>
                 <button id="new-btn">নতুন ইমেজ</button>
-                <button id="share-btn">শেয়ার করুন</button>
             </div>
-        </div>
-    </div>
-    
-    <div class="recent-images" id="recent-container">
-        <h2>সাম্প্রতিক ইমেজসমূহ</h2>
-        <div class="image-list" id="image-list">
-            <!-- Recent images will be added here dynamically -->
         </div>
     </div>
     
@@ -310,48 +273,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             const imageInput = document.getElementById('image-input');
             const uploadArea = document.getElementById('upload-area');
+            const loading = document.getElementById('loading');
             const previewContainer = document.getElementById('preview-container');
             const imagePreview = document.getElementById('image-preview');
             const urlContainer = document.getElementById('url-container');
             const generatedUrl = document.getElementById('generated-url');
             const copyBtn = document.getElementById('copy-btn');
             const newBtn = document.getElementById('new-btn');
-            const shareBtn = document.getElementById('share-btn');
             const notification = document.getElementById('notification');
-            const imageList = document.getElementById('image-list');
-            const recentContainer = document.getElementById('recent-container');
             
-            // Check if page is loaded with an image ID in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const imageId = urlParams.get('image');
-            
-            if (imageId) {
-                // Try to load the image from localStorage
-                const savedImage = localStorage.getItem(imageId);
-                if (savedImage) {
-                    // Show only the image
-                    document.body.innerHTML = `
-                        <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f0f0;">
-                            <img src="${savedImage}" alt="Shared Image" style="max-width: 90%; max-height: 90vh; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
-                        </div>
-                        <a href="${window.location.origin}${window.location.pathname}" style="position: absolute; top: 20px; left: 20px; background: #2575fc; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none;">নতুন ইমেজ আপলোড</a>
-                    `;
-                    return;
-                } else {
-                    // Image not found
-                    document.body.innerHTML = `
-                        <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f0f0; flex-direction: column; padding: 20px; text-align: center;">
-                            <h1 style="color: #ff4757;">ইমেজটি পাওয়া যায়নি</h1>
-                            <p style="margin: 20px 0; font-size: 18px;">দুঃখিত, আপনি যে ইমেজটি খুঁজছেন তা পাওয়া যায়নি। হতে পারে এটি ডিলিট হয়ে গেছে বা URL ভুল হয়েছে।</p>
-                            <a href="${window.location.origin}${window.location.pathname}" style="background: #2575fc; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-size: 16px;">নতুন ইমেজ আপলোড</a>
-                        </div>
-                    `;
-                    return;
-                }
-            }
-            
-            // Load recent images
-            loadRecentImages();
+            // ImgBB API Key - আপনি https://api.imgbb.com/ থেকে একটি API key নিতে পারেন
+            const API_KEY = '74068e69fc2d65ac86341c5cc172bdf3'; // এখানে আপনার API key দিন
             
             // Handle file selection
             imageInput.addEventListener('change', function(e) {
@@ -363,12 +295,31 @@
                         return;
                     }
                     
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const dataUrl = event.target.result;
-                        processImage(dataUrl, file.name);
-                    };
-                    reader.readAsDataURL(file);
+                    // Show loading
+                    uploadArea.style.display = 'none';
+                    loading.style.display = 'block';
+                    
+                    // Upload image to ImgBB
+                    uploadImageToImgBB(file)
+                        .then(url => {
+                            // Hide loading
+                            loading.style.display = 'none';
+                            
+                            // Show preview and URL
+                            showPreview(file);
+                            generatedUrl.value = url;
+                            urlContainer.style.display = 'block';
+                            
+                            // Scroll to URL container
+                            urlContainer.scrollIntoView({ behavior: 'smooth' });
+                        })
+                        .catch(error => {
+                            // Hide loading
+                            loading.style.display = 'none';
+                            uploadArea.style.display = 'block';
+                            
+                            alert('ইমেজ আপলোড করতে সমস্যা হয়েছে: ' + error.message);
+                        });
                 }
             });
             
@@ -392,18 +343,9 @@
                 
                 const file = e.dataTransfer.files[0];
                 if (file && file.type.startsWith('image/')) {
-                    // Check file size (max 5MB)
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('ফাইল সাইজ খুব বড়! সর্বোচ্চ 5MB সাইজের ইমেজ আপলোড করুন।');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const dataUrl = event.target.result;
-                        processImage(dataUrl, file.name);
-                    };
-                    reader.readAsDataURL(file);
+                    imageInput.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    imageInput.dispatchEvent(event);
                 } else {
                     alert('দয়া করে একটি বৈধ ইমেজ ফাইল ড্রপ করুন।');
                 }
@@ -415,136 +357,52 @@
                 document.execCommand('copy');
                 
                 // Show notification
-                showNotification('URL কপি করা হয়েছে!');
-            });
-            
-            // Start new upload
-            newBtn.addEventListener('click', function() {
-                resetUploader();
-            });
-            
-            // Share URL
-            shareBtn.addEventListener('click', function() {
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'ইমেজ URL',
-                        text: 'এই ইমেজটি দেখুন:',
-                        url: generatedUrl.value
-                    })
-                    .catch(error => {
-                        console.log('Error sharing:', error);
-                    });
-                } else {
-                    showNotification('আপনার ব্রাউজার শেয়ার functionality সাপোর্ট করে না');
-                }
-            });
-            
-            function processImage(dataUrl, fileName) {
-                // Generate unique ID for the image
-                const imageId = generateImageId();
-                
-                // Save to localStorage
-                localStorage.setItem(imageId, dataUrl);
-                
-                // Save to recent images list
-                saveToRecent(imageId, fileName);
-                
-                // Show preview
-                showPreview(dataUrl);
-                
-                // Generate URL
-                generateUrl(imageId);
-                
-                // Reload recent images
-                loadRecentImages();
-            }
-            
-            function showPreview(dataUrl) {
-                imagePreview.src = dataUrl;
-                previewContainer.style.display = 'block';
-                uploadArea.style.display = 'none';
-            }
-            
-            function generateUrl(imageId) {
-                const baseUrl = window.location.href.split('?')[0];
-                generatedUrl.value = `${baseUrl}?image=${imageId}`;
-                urlContainer.style.display = 'block';
-                
-                // Scroll to URL container
-                urlContainer.scrollIntoView({ behavior: 'smooth' });
-            }
-            
-            function resetUploader() {
-                previewContainer.style.display = 'none';
-                urlContainer.style.display = 'none';
-                uploadArea.style.display = 'block';
-                imageInput.value = '';
-            }
-            
-            function showNotification(message) {
-                notification.textContent = message;
                 notification.classList.add('show');
                 setTimeout(function() {
                     notification.classList.remove('show');
                 }, 2000);
+            });
+            
+            // Start new upload
+            newBtn.addEventListener('click', function() {
+                previewContainer.style.display = 'none';
+                urlContainer.style.display = 'none';
+                uploadArea.style.display = 'block';
+                imageInput.value = '';
+            });
+            
+            function showPreview(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
             }
             
-            function generateImageId() {
-                // Generate a random 10-character string
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                let result = '';
-                for (let i = 0; i < 10; i++) {
-                    result += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                return result;
-            }
-            
-            function saveToRecent(imageId, fileName) {
-                let recentImages = JSON.parse(localStorage.getItem('recentImages')) || [];
-                
-                // Add new image to the beginning of the array
-                recentImages.unshift({
-                    id: imageId,
-                    name: fileName,
-                    date: new Date().toISOString()
-                });
-                
-                // Keep only the last 6 images
-                if (recentImages.length > 6) {
-                    recentImages = recentImages.slice(0, 6);
-                }
-                
-                // Save back to localStorage
-                localStorage.setItem('recentImages', JSON.stringify(recentImages));
-            }
-            
-            function loadRecentImages() {
-                const recentImages = JSON.parse(localStorage.getItem('recentImages')) || [];
-                imageList.innerHTML = '';
-                
-                if (recentImages.length === 0) {
-                    recentContainer.style.display = 'none';
-                    return;
-                }
-                
-                recentContainer.style.display = 'block';
-                
-                recentImages.forEach(image => {
-                    const dataUrl = localStorage.getItem(image.id);
-                    if (dataUrl) {
-                        const imageItem = document.createElement('div');
-                        imageItem.className = 'image-item';
-                        imageItem.innerHTML = `
-                            <img src="${dataUrl}" alt="${image.name}">
-                            <p>${image.name}</p>
-                        `;
-                        
-                        imageItem.addEventListener('click', function() {
-                            window.location.href = `${window.location.origin}${window.location.pathname}?image=${image.id}`;
-                        });
-                        
-                        imageList.appendChild(imageItem);
-                    }
+            function uploadImageToImgBB(file) {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    
+                    // ImgBB API endpoint
+                    const url = `https://api.imgbb.com/1/upload?key=${API_KEY}`;
+                    
+                    fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            resolve(data.data.url);
+                        } else {
+                            reject(new Error(data.error.message || 'আপলোড失败'));
+                        }
+                    })
+                    .catch(error => {
+                        reject(new Error('নেটওয়ার্ক সমস্যা: ' + error.message));
+                    });
                 });
             }
         });
